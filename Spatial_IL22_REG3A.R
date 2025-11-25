@@ -1,41 +1,27 @@
 ---
-  title: "Spatial RNAseq Go"
+  title: "Spatial RNAseq "
 output: html_document
 date: "2025-09-04"
 ---
   
-library(Seurat)     # Main package for single-cell and spatial transcriptomics analysis
+library(Seurat)     
 library(SeuratObject)
-library(patchwork)  # Helps combine multiple ggplot2 plots into one figure
-library(tidyverse)  # Essential collection of R packages, including ggplot2, dplyr, magrittr
-library(grid)    # Plot multiple objects
-library(viridis) # A series of color maps that are designed to improve graph readability
-library(SeuratWrappers) #SeuratWrappers is a collection of community-provided methods and extensions for Seurat.
+library(patchwork)  
+library(tidyverse)  
+library(grid)    
+library(viridis) 
+library(SeuratWrappers) 
 library(Matrix)
 library(readr)
 library(dplyr)
 library(tidyr)
-library(arrow)  # for parquet files
+library(arrow)  
 library(jsonlite)
 library(OpenImageR)
 
+setwd('')
 
-#library(spacexr) #learning cell types and cell type-specific differential expression in spatial transcriptomics data.
-# For other plots
-
-# Colors
-cal_pal50 = c("#Fa1a8e", "#009B7D", "#ff9933", "#7083a4", "#ffce45", "#015e05", 
-              "#fedf25", "#d2b48c", "#bb55e1", "#6ec5ab", "#5d57af", "#143341", 
-              "#761445", "#d65b5a", "#94043a", "#e7a6cd", "#204519", "#87afd1", 
-              "#9b9a9d", "#f95b70", "#83c874", "#808080", "#452b5b", "#ecb100", 
-              "#f46124", "#525252", "#4c84a3", "#00bfff", "#01b4c6", "#174d79", 
-              "#a6a0f2", "#76facc", "#8491be", "#a32a2f", "#1c8859", "#2cc012", 
-              "#35782b", "#9c6755", "#3b3960", "#eeb0a1", "#3e1e13", "#0064c3", 
-              "#d81e4a", "#74646c", "#f675da", "#ffce45", "#ec7014", "#e50000", 
-              "#000000", "#a4527c", "#041859")
-
-setwd('/Users/joana/Documents/IKMB/spatialRNAseq/Go_IL22_spatial/')
-
+# Load dataset and information of tissue location
 B21 = Load10X_Spatial("input/B21_07755/outs/binned_outputs/square_008um/", assay="RNA")
 B21$orig.ident = "B21"
 Idents(B21) = "B21"
@@ -49,9 +35,6 @@ rownames(regionB21) <- regionB21$Barcode
 regionB21 <- regionB21[colnames(B21), , drop = FALSE]
 # Add the region column to B21 metadata
 B21$region <- regionB21$region
-# Quick check
-head(B21@meta.data)
-table(B21$region)
 
 
 B22 = Load10X_Spatial("input/B22_07388/outs/binned_outputs/square_008um/", assay="RNA")
@@ -64,9 +47,8 @@ regionB22<-read.csv('input/B22_07388/outs/binned_outputs/square_008um/region.csv
 rownames(regionB22) <- regionB22$Barcode
 regionB22 <- regionB22[colnames(B22), , drop = FALSE]
 B22$region <- regionB22$region
-head(B22@meta.data)
-table(B22$region)
 
+# Merge the two slides
 # Add sample identifiers (important before merging)
 Idents(B21) <- "B21"
 Idents(B22) <- "B22"
@@ -162,8 +144,6 @@ table(combined$region)
 #colon 49364 SI 37725 
 
 saveRDS(combined, file='Go_SpatialObject_simple_clean.rds')
-
-#combined<-readRDS('Go_SpatialObject_simple_clean.rds')
 
 Idents(combined)<- combined$region
 Colon<-subset(combined, idents='Colon')
@@ -443,12 +423,7 @@ DimPlot(combined_clean, reduction="umap", label=TRUE, label.size = 3) + NoLegend
 
 saveRDS(combined_clean, file='Go_SpatialObject_SI_simple_clean2_analyzed.rds')
 
-##SI
-
-
-
-
-
+## check expression of genes of interest
 Colon<-readRDS('Go_SpatialObject_Colon_simple_clean2_analyzed.rds')
 SI<-readRDS('Go_SpatialObject_SI_simple_clean2_analyzed.rds')
 
@@ -548,10 +523,6 @@ print(table(Idents(pcm_subset)))
 # Visualize the spatial expression for antimicrobial markers
 genes_of_interest <- c("DEFA5", "DEFA6", "REG3A", "PLA2G2A")
 
-library(Seurat)
-library(ggplot2)
-
-genes_of_interest <- c("DEFA5", "DEFA6", "REG3A", "PLA2G2A")
 
 # Generate plots for each gene and apply coord_cartesian to zoom in
 plots <- lapply(genes_of_interest, function(gene) {
@@ -721,510 +692,8 @@ markers_top$gene
 
 write.csv(markers_top, file='markers_top5_res03_SI_clean2.csv')
 
-gt::gt(markers_top) %>% 
-  gt::tab_options(container.height=450)
 
 
-
-DotPlot(combined_clean, features=markers_top$gene %>% unique()) +
-  viridis::scale_color_viridis() + 
-  ylab("Cluster") + xlab("") +
-  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=.5),
-        legend.position="bottom") + 
-  guides(size=guide_legend(order=1, title="Pct expressed"), color=guide_colorbar(title="Scaled Expression")) + 
-  ggtitle("Top markers per cluster (expression scaled)")
-
-
-
-
-
-
-
-Marker_genes<-c('IGHM',"CD74","ACTA2","STMN1",'JCHAIN',"LYZ",'REG3A',"FABP2","OLFM4",'UCHL1' , "MUC3A",  'MKI67',"DCLK1","CHGB",'LYVE1','MADCAM1','APOA4','MCT1','TPM1')
-
-
-DotPlot(combined, features=Marker_genes %>% unique()) +
-  viridis::scale_color_viridis() + 
-  ylab("Cluster") + xlab("") +
-  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=.5),
-        legend.position="bottom") + 
-  guides(size=guide_legend(order=1, title="Pct expressed"), color=guide_colorbar(title="Scaled Expression")) + 
-  ggtitle("In-house markers per cluster (expression scaled)")
-
-
-set.seed(42)
-cluster_bins = Cells(sp) %>% 
-  sample(10000)
-
-
-DoHeatmap(sp, features=Marker_genes, 
-          cells=cluster_bins,
-          group.colors=cal_pal50, 
-          label=FALSE) + 
-  scale_fill_viridis() +
-  guides(colour="none")
-```
-
-
-# Cell type annotation by deconvolution
-
-Spatial transcriptomics data often require deconvolution to **resolve the cellular composition** of individual spatial units (bins). This section guides you through the process of estimating cell type compositions in Visium HD data using the RCTD method from the `spacexr` package.
-
-## What is deconvolution?
-
-In spatial transcriptomics, such as 10x Visium HD, each bin may contain zero, one, or multiple cells, depending on the resolution, cell size, and local cell density. As a result, we cannot assume that each bin corresponds to a single cell. To address this, deconvolution methods are used to estimate the proportion of different cell types within each bin.
-
-These methods also often incorporate spatial information (i.e., neighborhood relationships between bins) to improve accuracy.
-
-One such method is **Robust Cell Type Decomposition (RCTD)**, implemented in the [`spacexr`](https://github.com/dmcable/spacexr) package. RCTD learns gene expression profiles of cell types from a **single-cell reference dataset** and uses these profiles to deconvolve spatial bins into estimated cell type compositions.
-
-For this tutorial, we use a preprocessed reference derived from the [Tabula Muris senis](https://tabula-muris-senis.sf.czbiohub.org) single-cell dataset of large intestine.
-
-We now prepare the `SpatialRNA` object required by `spacexr`:
-  
-  ```{r}
-#| label: annot_1
-
-# Counts
-counts = GetAssayData(sp, assay="sketch", layer="counts")
-
-# Coordinates
-bins_sketch = Cells(sp[["sketch"]])
-coords = GetTissueCoordinates(sp)[bins_sketch, 1:2]
-
-# Total counts
-total_counts = colSums(counts)
-
-# Create spacexr SpatialRNA object
-query = spacexr::SpatialRNA(coords, counts, total_counts)
-```
-
-## Load and prepare the reference dataset
-
-We begin by loading the [Tabula Muris Senis large intestine dataset], which has been saved as a Seurat object:
-  
-  ```{r}
-#| label: annot_2
-
-load("datasets/TM_Intestine_facs_Figure.rda")
-TM_Int<-UpdateSeuratObject(TM_Int)
-TM_Int
-```
-
-We use the `Celltype` column for cell type annotations:
-  
-  ```{r}
-#| label: annot_3
-
-TM_Int[[]] %>% dplyr::select(Celltype) %>% head(10)
-table(TM_Int$Celltype)
-```
-
-We convert this Seurat object into a `spacexr` Reference object:
-  
-  ```{r}
-#| label: annot_4
-
-# Counts
-counts = GetAssayData(TM_Int, assay="RNA", layer="counts")
-
-# Cell type labels
-cell_types = as.factor(TM_Int$Celltype)
-levels(cell_types) = gsub("/", "-", levels(cell_types))
-cell_types = droplevels(cell_types)
-
-# Total counts
-total_counts = TM_Int$nReads
-
-# Create Reference object
-ref = spacexr::Reference(counts, cell_types, total_counts, n_max_cells=500)
-
-gc()
-```
-
-## Run RCTD
-
-We are now ready to run RCTD. However, since this step is time-consuming, we provide the results precomputed and saved in the file `datasets/RCTD.Rds`. For completeness, here is how you would normally run the algorithm:
-  
-  ```{r}
-#| label: annot_5
-
-# This will take five hours
-#
-RCTD = create.RCTD(query, ref, max_cores=12)
-RCTD = run.RCTD(RCTD, doublet_mode = "doublet")
-saveRDS(RCTD, "datasets/RCTD.Rds")
-gc()
-```
-
-We simply load the results:
-  
-  ```{r}
-#| label: annot_6
-
-RCTD = readRDS("datasets/RCTD.Rds")
-RCTD_results = RCTD@results$results_df
-head(RCTD_results)
-```
-
-The `results_df` contains the main output of the deconvolution. Key columns include:  
-  * `spot_class`: classification of each bin ("singlet", "doublet_certain", "doublet_uncertain", "reject")  
-* `first_type`: predicted identity of the first cell type  
-* `second_type`: only populated for doublets
-
-We now add these predictions to the bin metadata of the sp object:
-  
-  ```{r}
-#| label: annot_7
-
-# Add to sp object
-RCTD_results = RCTD_results[, c("spot_class", "first_type", "second_type")]
-colnames(RCTD_results) = c("doublet", "first_cell_type", "second_cell_type")
-sp = AddMetaData(sp, metadata=RCTD_results)
-
-# Replace NA (not available) with "unknown"
-sp$doublet = as.character(sp$doublet)
-sp$doublet[is.na(sp$doublet)] = "unknown"
-sp$doublet = factor(sp$doublet)
-
-sp$first_cell_type = as.character(sp$first_cell_type)
-sp$first_cell_type[is.na(sp$first_cell_type)] = "Unknown"
-sp$first_cell_type = factor(sp$first_cell_type)
-
-sp$second_cell_type = as.character(sp$second_cell_type)
-sp$second_cell_type[is.na(sp$second_cell_type)] = "Unknown"
-sp$second_cell_type = factor(sp$second_cell_type)
-```
-
-
-
-## Visualize the results
-
-We can now visualize cell type predictions. For example, here we highlight two predicted secretory cells (typically labeled as Enteroendocrine, and Tuft cells) on the spatial plot:
-  :
-  ```{r}
-#| label: annot_8
-
-Idents(sp) = "first_cell_type"
-
-secreted_cells = c("Paneth cells", "Enterocytes")
-secreted_cells_bins = CellsByIdentities(sp, idents=secreted_cells)
-secreted_cells_bins[["NA"]] = NULL
-
-SpatialDimPlot(sp, cells.highlight=secreted_cells_bins, facet.highlight=TRUE, cols.highlight=c("#FFFF00", "grey50")) + NoLegend()
-```
-## Plot the reference-based cell annotations.
-```{r}
-#| label: plot_final
-#| fig-height: 5
-#| fig-width: 12
-
-p1 = DimPlot(sp, reduction="umap.sketch", label=TRUE, group.by = 'first_cell_type') + NoLegend()+ scale_fill_manual(values=cal_pal50)
-p2 = SpatialDimPlot(sp, group.by = 'first_cell_type') + scale_fill_manual(values=cal_pal50)
-p1 | p2
-
-```
-## Annotate clusters and domains
-
-Using the in house cell types, we can now try to annotate our clusters and domains. 
-
-We plot the distribution of predicted cell types for the `seurat_clusters`:
-  
-  ```{r}
-#| label: annot_10
-
-# Call clusters and substitute cell types
-Idents(sp)<-sp$seurat_clusters
-new.cluster.ids <- c( "Immune cells", #1
-                      "Stromal cells", #2
-                      "Stem TA cells", #3
-                      "Plasma cells", #4
-                      "Paneth cells", #5
-                      "Immature enterocytes", #6
-                      "Enterocytes", #7
-                      "Enterocytes", #8
-                      "Enterocytes", #9
-                      "Paneth cells", #10
-                      "Smooth muscle", #11
-                      "Enterocytes", #12
-                      "Immature B cells", #13
-                      "Tuft cells", #14
-                      "Smooth muscl", #15
-                      "Enteroendocrine", #16
-                      "Pericyte", #17
-                      "Immune cells", #18
-                      "Enterocytes", #19
-                      "Mast cells", #20
-                      "Stromal cells" #21
-)
-names(new.cluster.ids) <- levels(sp)
-sp <- RenameIdents(sp, new.cluster.ids)
-sp$Celltype<-Idents(sp)
-
-```
-
-## Plot the cell annotations. always take into account that cell-types are subjects to granularity. Take immune cells for example, they have markers of B cells and macrophages, which 
-```{r}
-#| label: plot_final
-#| fig-height: 5
-#| fig-width: 12
-
-p1 = DimPlot(sp, reduction="umap.sketch", label=TRUE) + NoLegend()+ scale_fill_manual(values=cal_pal50)
-p2 = SpatialDimPlot(sp) + scale_fill_manual(values=cal_pal50)
-p1 | p2
-
-```
-## Analysing the full dataset if you have no memory problems so far!
-
-Once we have finished analyzing the sketched dataset, we can project the learned cluster labels, PCA, and UMAP from the sketch assay onto the entire dataset. This allows us to transfer the insights gained from the subsampled dataset to the full dataset, which may have additional complexity.
-
-We use the `ProjectData` function to carry out this projection. Here’s the code to project the data from the sketch assay to the full dataset:
-  
-  ```{r}
-#| label: plot_final2
-
-sp = ProjectData(sp,
-                 sketched.assay="sketch", assay="RNA", 
-                 sketched.reduction="pca.sketch", full.reduction="pca", 
-                 umap.model="umap.sketch",
-                 refdata=list(seurat_clusters="seurat_clusters.sketch", Celltype.full='Celltype'),
-                 dims=1:30)
-
-# Fix the category levels for bin metadata column Seurat_clusters.008um and update the bin identities
-sp$seurat_clusters = factor(sp$seurat_clusters, levels=levels(sp$seurat_clusters.sketch))
-Idents(sp) = "seurat_clusters"
-
-# Rename UMAP from full.umap.sketch to umap
-umap = sp[["full.umap.sketch"]]
-Key(umap) = "umap"
-sp[["umap"]] = umap
-sp[["full.umap.sketch"]] = NULL
-
-# Set default assay back to RNA.008um
-DefaultAssay(sp) = "RNA"
-gc()
-```
-
-The Seurat object now contains a full PCA (`pca`), a full UMAP (`umap`) and a full clustering (`seurat_clusters). We color the clusters of the full dataset on the UMAP as well as in spatial context:
-  
-  ```{r}
-#| label: plot_final3
-
-p1 = DimPlot(sp, reduction="umap", label=TRUE, group.by = 'Celltype.full') +  scale_fill_manual(values=cal_pal50)
-p2 = SpatialDimPlot(sp, group.by = 'Celltype.full') + scale_fill_manual(values=cal_pal50)
-p1 | p2
-```
-
-
-```{r}
-#| label: loupe_export
-
-# Only for the 8 um bins
-bins_to_export = Cells(sp[["RNA.008um"]])
-
-# Bin metadata
-metadata_to_export = sp[[]][bins_to_export, ] %>%
-  dplyr::select(orig.ident, seurat_clusters.008um) %>%
-  tibble::rownames_to_column("barcode")
-
-write.csv(metadata_to_export, "datasets/exported_bin_metadata.csv", row.names=FALSE)
-
-# UMAP
-umap_to_export = Embeddings(sp[["umap.008um"]])[bins_to_export, ] %>%
-  as.data.frame() %>%
-  tibble::rownames_to_column("Barcode")
-write.csv(umap_to_export, "datasets/exported_umap.csv", row.names=FALSE)
-```
-
-Information about importing results into Loupe can be found in the [Loupe tutorial](https://www.10xgenomics.com/support/software/loupe-browser/latest/tutorials/introduction/lb-sc-interface-and-navigation).
-
-
-
-
-
-
-# Spatial clustering and domains
-
-So far, we have explored the **fundamentals of analyzing spatial (and single-cell) transcriptomic data** using Seurat. The workflow introduced above serves is a good starting point.
-
-However, a key limitation of this approach is that it treats each spatial bin independently, without considering its physical context within the tissue. Spatial analysis methods aim to address this by incorporating neighborhood information—enhancing biological interpretation and robustness. Several steps in our basic workflow can be extended to include this spatial context.
-
-
-### If there is time: spatial information in clustering
-## What is BANKSY?
-
-[BANKSY](https://github.com/prabhakarlab/Banksy) is a computational method specifically designed for spatial transcriptomics analysis. By integrating information from neighboring bins, BANKSY can reduce noise in gene expression data, distinguish between different cell types based on spatial context, and identify spatial domains. 
-
-BANKSY represents each cell or bin not only by its own transcriptomic profile but also by the average expression of its local neighborhood. This dual representation captures both intrinsic cellular identity and microenvironmental context. The degree to which neighborhood information is incorporated is controlled by the lambda parameter:  
-  
-  * Lower values (e.g., **lambda = 0.2**) emphasize immediate neighbors — useful for **cell typing**  
-  * Higher values (e.g., **lambda = 0.8**) incorporate broader spatial context — useful for **domain detection**  
-  
-  Although BANKSY is a standalone tool with its own framework, it can be integrated into Seurat workflows using the `RunBanksy` function from the `SeuratWrappers` package. This allows users to apply BANKSY directly to Seurat objects.
-
-In summary, BANKSY leverages the principle that a cell’s identity is shaped not only by its own gene expression but also by its surrounding environment. By adjusting a single hyperparameter, it provides flexibility to shift focus from cellular identity to higher-order tissue organization.
-
-## Improve clustering with BANKSY
-
-BANKSY can serve as an alternative to the default clustering approach we used earlier. In this step, we apply BANKSY with a low lambda value (0.2) to focus on local neighborhood information, and set the number of neighbors (k_geom) to 15.
-
-**Note:** This step can be time- and memory-intensive.
-This code sets up your R session to run computations in parallel using 10 cores and allows large objects (up to 100 GB) to be shared between the main session and the parallel workers.
-```{r}
-library(future)
-options(future.globals.maxSize = 100 * 1024^3)  # must come before plan()
-plan("multisession", workers = 10)
-
-```
-
-
-```{r}
-#| label: spatial_1
-
-sp = RunBanksy(sp,
-               assay="RNA", assay_name="BANKSY",
-               features="variable",
-               lambda=0.2, k_geom=15,
-               verbose=TRUE)
-
-# Set it as default
-DefaultAssay(sp) = "BANKSY"
-
-gc()
-```
-
-At this point, we have created a new assay `BANKSY`, containing the BANKSY-transformed data, and have set it as the default.
-
-**⚠️ Important**: BANKSY fills the `scale.data` layer. Therefore do not call `ScaleData` on the BANKSY assay as this negates the effects of lambda. 
-
-```{r}
-#| label: spatial_2
-
-sp
-```
-
-Next, we apply PCA, clustering, and UMAP using the BANKSY assay. We use the first 15 PCs and set a clustering resolution of 0.5, though these values can and should be adjusted depending on your dataset.
-
-```{r}
-#| label: spatial_3
-
-sp = RunPCA(sp, reduction.name="banksy_pca", features=rownames(sp[["BANKSY"]]), npcs=40, nfeatures.print=5)
-sp = FindNeighbors(sp, reduction="banksy_pca", dims=1:30)
-sp = FindClusters(sp, resolution=0.5, algorithm="leiden", random.seed=42)
-sp = RunUMAP(sp, reduction="banksy_pca", reduction.name="banksy_umap", dims=1:40, return.model=TRUE)
-
-sp$banksy_clusters = sp$seurat_clusters
-DefaultAssay(sp) = "RNA"
-```
-
-Here we compare the results of default **Seurat clustering versus BANKSY clustering**, first using UMAP plots:
-  
-  ```{r}
-#| label: spatial_4
-
-p1 = DimPlot(sp, reduction="umap", label=TRUE, group.by="seurat_clusters") + NoLegend() + ggtitle("Seurat clustering")
-p2 = DimPlot(sp, reduction="banksy_umap", label=TRUE, group.by="banksy_clusters") + NoLegend() + ggtitle("BANKSY clustering")
-p1 | p2
-```
-
-And as spatial plots:
-  
-  ```{r}
-#| label: spatial_5
-
-p1 = SpatialDimPlot(sp, group.by="seurat_clusters") + NoLegend() + ggtitle("Seurat") + scale_fill_manual(values=cal_pal50)
-p2 = SpatialDimPlot(sp, group.by="banksy_clusters") + NoLegend() + ggtitle("BANKSY") + scale_fill_manual(values=cal_pal50)
-p1 | p2
-```
-
-## Recommendations
-BANKSY does not automatically produce better results. Always evaluate both clustering outputs in the context of your biological question and data quality.
-
-## Identifying spatial domains with BANKSY
-
-In addition to improving clustering, BANKSY can be tuned to detect larger-scale tissue structures, often referred to as spatial domains. By increasing the `lambda` parameter and the number of neighbors (`k_geom`), BANKSY incorporates more spatial context and captures broader patterns of gene expression across the tissue.
-
-In the following example, we set `lambda=0.8` and `k_geom=50` to include more neighboring bins in the analysis.
-
-**Note:** We first remove the BANKSY assay from the previous run to conserve memory. This step is optional but will save us some memory resources.
-
-```{r}
-#| label: spatial_6
-
-DefaultAssay(sp) = "RNA"
-sp = RunBanksy(sp,
-               assay="RNA", assay_name="BANKSY",
-               features="variable",
-               lambda=0.8, k_geom=50,
-               verbose=TRUE)
-
-# Set it as default
-DefaultAssay(sp) = "BANKSY"
-
-gc()
-```
-
-As before, we perform PCA, clustering, and UMAP on the BANKSY assay. We use the first 10 PCs and a clustering resolution of 0.5, but these values should again be adjusted depending on your dataset:
-  
-  ```{r}
-#| label: spatial_7
-
-sp = RunPCA(sp, reduction.name="banksy_pca", features=rownames(sp[["BANKSY"]]), npcs=40, nfeatures.print=5)
-sp = FindNeighbors(sp, reduction="banksy_pca", dims=1:40)
-sp = FindClusters(sp, resolution=0.5, algorithm="leiden")
-sp$banksy_domains.008um = sp$seurat_clusters
-```
-
-If your clustering results look similar to those from the previous BANKSY run (with `lambda=0.2`), this could indicate that the dominant tissue structures are already captured at a local level. We encourage you to systematically explore different parameter settings for `lambda`, `k_geom`, and `resolution` to assess their impact on clustering outcomes and spatial domain resolution.
-
-Since this BANKSY run is also complete, we again remove the assay and PCA reduction to free up memory:
-  
-  ```{r}
-#| label: spatial_8
-
-# Remove BANKSY assay and pca since not used anymore and we need the memory.
-DefaultAssay(sp) = "RNA"
-sp[["BANKSY"]] = NULL
-sp[["banksy_pca<"]] = NULL
-gc()
-```
-
-## Recommended reading
-
-If you want to learn more about BANKSY, we find these pages helpful: 
-  
-  * https://github.com/satijalab/seurat-wrappers/blob/master/docs/banksy.md  
-* https://github.com/prabhakarlab/Banksy?tab=readme-ov-file  
-
-
-# Session info
-
-To enhance reproducibility and facilitate the sharing of your analysis, it is good practice to include information about the R session and the packages used:
-  
-  ```{r}
-#| label: session_info
-
-sessioninfo::session_info()
-```
-
-# Useful resources
-
-- Best practices:
-  - [Single-cell best practices](https://www.sc-best-practices.org/preamble.html)
-- [Orchestrating Single-Cell Analysis with Bioconductor
-](https://bioconductor.org/books/release/OSCA/)
-- [Orchestrating Spatial Transcriptomics Analysis with Bioconductor
-](https://lmweber.org/OSTA/)
-- Seurat:
-  - [Essential commands](https://satijalab.org/seurat/articles/essential_commands)
-- [Basic Single-cell Analysis Vignette](https://satijalab.org/seurat/articles/pbmc3k_tutorial)
-- [Seurat Visium Analysis Vignette](https://satijalab.org/seurat/articles/spatial_vignette)
-- [Seurat Visium HD Analysis Vignette](https://satijalab.org/seurat/articles/visiumhd_analysis_vignette)
-- Tools:
-  - [Spaceranger](https://www.10xgenomics.com/support/software/space-ranger/latest)
-- [Loupe Browser](https://www.10xgenomics.com/support/software/loupe-browser/latest)
-- [Spotsweeper](https://github.com/MicTott/SpotSweeper)
-- [banksy](https://github.com/prabhakarlab/Banksy)
 
 
 
